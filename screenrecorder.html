@@ -1485,6 +1485,15 @@
             const newPlayPauseBtn = document.getElementById('playPauseBtn');
             const newSeekBar = document.getElementById('seekBar');
 
+            // Add this new click handler for the play/pause button
+            newPlayPauseBtn.addEventListener('click', () => {
+                if (playbackVideo.paused) {
+                    playbackVideo.play();
+                } else {
+                    playbackVideo.pause();
+                }
+            });
+
             // Reset controls state
             videoControls.classList.add('active');
             newSeekBar.value = 0;
