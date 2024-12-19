@@ -928,6 +928,7 @@
         let db;
 
         let recordingDuration = 0;
+        let finalRecordingDuration = 0;
 
         const initDB = () => {
             const request = indexedDB.open('ScreenRecorderDB', 1);
@@ -1017,6 +1018,8 @@
             const hours = Math.floor(elapsed / (1000 * 60 * 60));
             
             recordingDuration = elapsed / 1000;
+            finalRecordingDuration = recordingDuration;
+            console.log('Current recording duration:', recordingDuration);
             timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
@@ -1073,8 +1076,7 @@
                     const format = formatSelect.value;
                     const blob = new Blob(recordedChunks, { type: format === 'mp4' ? 'video/mp4' : 'video/webm' });
                     
-                    // Store the final duration before showing save dialog
-                    const finalDuration = recordingDuration;
+                    console.log('Final duration at stop:', finalRecordingDuration);
                     
                     const saveDialog = document.querySelector('.save-dialog');
                     const overlay = document.querySelector('.overlay');
@@ -1099,7 +1101,7 @@
                     const time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS
                     
                     // Calculate duration in seconds
-                    const durationSecs = Math.round(finalDuration); // Use finalDuration instead of calculating again
+                    const durationSecs = Math.round(finalRecordingDuration); // Use finalRecordingDuration instead of calculating again
                     const durationStr = durationSecs < 60 ? `${durationSecs}s` : `${Math.round(durationSecs/60)}m`;
                     
                     // Construct filename: Recording_Type_YYYYMMDD_HHMMSS_Duration
@@ -1132,8 +1134,9 @@
                                 size: actualSize.toFixed(1),
                                 type: format === 'mp4' ? 'video/mp4' : 'video/webm',
                                 recordingType: recordingType,
-                                duration: finalDuration // Use finalDuration here instead of recordingDuration
+                                duration: finalRecordingDuration
                             });
+                            console.log('Duration saved to DB:', finalRecordingDuration);
 
                             transaction.oncomplete = () => {
                                 loadRecordingHistory();
@@ -1196,6 +1199,8 @@
 
         function stopRecording() {
             if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                finalRecordingDuration = recordingDuration;
+                console.log('Storing final duration before stop:', finalRecordingDuration);
                 mediaRecorder.stop();
             }
 
@@ -1206,9 +1211,6 @@
                 video.style.display = "none";
                 video.classList.remove('active');
             }
-
-            // Store the final duration before clearing the timer
-            const finalDuration = recordingDuration;
             
             clearInterval(timerInterval);
             timerElement.textContent = "00:00:00";
@@ -1223,7 +1225,6 @@
             `;
             recordingIndicator.classList.remove('active');
             
-            // Reset recording duration
             recordingDuration = 0;
         }
 
@@ -1418,6 +1419,7 @@
             request.onsuccess = () => {
                 const recording = request.result;
                 if (recording) {
+                    console.log('Loaded recording duration:', recording.duration);
                     const url = URL.createObjectURL(recording.blob);
                     const playbackVideo = document.getElementById('playbackVideo');
                     playbackVideo.src = url;
@@ -1426,6 +1428,7 @@
                     
                     // Store the duration as a data attribute
                     playbackVideo.dataset.storedDuration = recording.duration;
+                    console.log('Set video duration attribute:', playbackVideo.dataset.storedDuration);
                     
                     // Make sure video controls are visible
                     const videoControls = document.querySelector('.video-controls');
@@ -1434,7 +1437,6 @@
                     setupVideoControls();
                     
                     // Initialize play button state and start playing
-                    const playPauseBtn = document.getElementById('playPauseBtn');
                     updatePlayPauseButton(true);
                     
                     // Scroll the playback video into view smoothly
@@ -1442,6 +1444,11 @@
                     
                     // Autoplay the video
                     playbackVideo.play();
+                    
+                    playbackVideo.onloadedmetadata = () => {
+                        console.log('Video loadedmetadata - duration:', playbackVideo.duration);
+                        console.log('Stored duration on load:', playbackVideo.dataset.storedDuration);
+                    };
                     
                     playbackVideo.onended = () => {
                         URL.revokeObjectURL(url);
@@ -1484,24 +1491,18 @@
             currentTime.textContent = '0:00';
             duration.textContent = '0:00';
 
-            // Add event listeners
-            newPlayPauseBtn.addEventListener('click', () => {
-                if (playbackVideo.paused) {
-                    playbackVideo.play();
-                    updatePlayPauseButton(true);
-                } else {
-                    playbackVideo.pause();
-                    updatePlayPauseButton(false);
-                }
-            });
-
             playbackVideo.addEventListener('loadedmetadata', () => {
+                console.log('Video loadedmetadata - duration:', playbackVideo.duration);
+                console.log('Stored duration on load:', playbackVideo.dataset.storedDuration);
+                
                 if (!isFinite(playbackVideo.duration) && playbackVideo.dataset.storedDuration) {
                     newSeekBar.max = Math.floor(playbackVideo.dataset.storedDuration);
                     duration.textContent = formatTime(playbackVideo.dataset.storedDuration);
+                    console.log('Using stored duration:', playbackVideo.dataset.storedDuration);
                 } else if (isFinite(playbackVideo.duration)) {
                     newSeekBar.max = Math.floor(playbackVideo.duration);
                     duration.textContent = formatTime(playbackVideo.duration);
+                    console.log('Using video duration:', playbackVideo.duration);
                 }
             });
 
