@@ -12,6 +12,7 @@
             --button-hover: #3d3d3d;
             --accent-color: #007bff;
             --border-color: #333333;
+            
         }
 
         body {
@@ -926,6 +927,8 @@
         let recordingHistory = [];
         let db;
 
+        let recordingDuration = 0;
+
         const initDB = () => {
             const request = indexedDB.open('ScreenRecorderDB', 1);
             
@@ -1013,6 +1016,7 @@
             const minutes = Math.floor((elapsed / (1000 * 60)) % 60);
             const hours = Math.floor(elapsed / (1000 * 60 * 60));
             
+            recordingDuration = elapsed / 1000;
             timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
@@ -1200,6 +1204,9 @@
                 video.classList.remove('active');
             }
 
+            // Store the final duration before clearing the timer
+            const finalDuration = recordingDuration;
+            
             clearInterval(timerInterval);
             timerElement.textContent = "00:00:00";
             startButton.disabled = false;
@@ -1212,6 +1219,9 @@
                 Start Recording
             `;
             recordingIndicator.classList.remove('active');
+            
+            // Reset recording duration
+            recordingDuration = 0;
         }
 
         startButton.addEventListener("click", () => {
