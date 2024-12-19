@@ -741,6 +741,7 @@
             top: 0;
             background-color: var(--bg-color);
             z-index: 100;
+            gap: 15px;
         }
 
         .delete-all-btn {
@@ -790,6 +791,33 @@
             padding-top: 15px;
         }
 
+        .storage-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-right: 15px;
+            min-width: 150px;
+        }
+
+        .storage-text {
+            font-size: 0.9em;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        .storage-bar {
+            height: 4px;
+            background: var(--button-bg);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .storage-fill {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -823,6 +851,12 @@
                 </div>
             </div>
 
+            <div class="troubleshooting-info" style="margin-top: 15px; text-align: center;">
+                <button id="troubleshootBtn" class="troubleshoot-btn" style="background: var(--button-bg); border: 1px solid var(--border-color);">
+                    Troubleshooting Guide
+                </button>
+            </div>
+
             <div class="controls">
                 <button id="startCapture" title="Start Recording">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
@@ -846,9 +880,11 @@
 
             <div class="settings">
                 <select id="qualitySelect">
-                    <option value="high">High Quality (3 Mbps)</option>
-                    <option value="medium">Medium Quality (1.5 Mbps)</option>
-                    <option value="low">Low Quality (800 Kbps)</option>
+                    <option value="ultra">Ultra Quality</option>
+                    <option value="high">High Quality</option>
+                    <option value="medium">Medium Quality</option>
+                    <option value="low">Low Quality</option>
+                    <option value="lowest">Lowest Quality</option>
                 </select>
                 <select id="formatSelect">
                     <option value="webm">WebM</option>
@@ -875,7 +911,13 @@
                     <div class="history-header">
                         <h2>Recording History</h2>
                     </div>
-                    <button id="deleteAllBtn" class="delete-all-btn ${recordingHistory.length > 0 ? 'visible' : ''}">
+                    <div class="storage-info">
+                        <div class="storage-text">Storage Used: <span id="storageUsed">0 MB</span></div>
+                        <div class="storage-bar">
+                            <div class="storage-fill"></div>
+                        </div>
+                    </div>
+                    <button id="deleteAllBtn" class="delete-all-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -930,25 +972,26 @@
         let recordingDuration = 0;
         let finalRecordingDuration = 0;
 
-        const initDB = () => {
-            const request = indexedDB.open('ScreenRecorderDB', 1);
-            
-            request.onerror = (event) => {
-                console.error('IndexedDB error:', event.target.error);
-            };
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('recordings')) {
-                    db.createObjectStore('recordings', { keyPath: 'id', autoIncrement: true });
+        async function requestMaxStorageQuota() {
+            try {
+                if ('storage' in navigator && 'persist' in navigator) {
+                    // Request persistent storage permission
+                    await navigator.storage.persist();
+                    
+                    // Get available storage space
+                    const estimate = await navigator.storage.estimate();
+                    console.log(`Available storage: ${estimate.quota} bytes`);
+                    console.log(`Used storage: ${estimate.usage} bytes`);
+                    
+                    return estimate.quota;
                 }
-            };
-
-            request.onsuccess = (event) => {
-                db = event.target.result;
-                loadRecordingHistory();
-            };
-        };
+                // Fallback to a high value if Storage API is not available
+                return 1024 * 1024 * 1024 * 10; // 10GB default
+            } catch (error) {
+                console.warn('Error requesting storage quota:', error);
+                return 1024 * 1024 * 1024 * 10; // 10GB fallback
+            }
+        }
 
         function saveSettings() {
             const settings = {
@@ -989,8 +1032,75 @@
             }
         }
 
-        qualitySelect.addEventListener('change', saveSettings);
-        formatSelect.addEventListener('change', saveSettings);
+        function getRecordingOptions(format, quality) {
+            const options = {
+                webm: {
+                    ultra: { videoBitsPerSecond: 12000000 },    // 12 Mbps
+                    high: { videoBitsPerSecond: 8000000 },      // 8 Mbps
+                    medium: { videoBitsPerSecond: 4000000 },    // 4 Mbps
+                    low: { videoBitsPerSecond: 2000000 },       // 2 Mbps
+                    lowest: { videoBitsPerSecond: 1000000 }     // 1 Mbps
+                },
+                mp4: {
+                    ultra: { videoBitsPerSecond: 20000000 },    // 20 Mbps
+                    high: { videoBitsPerSecond: 12000000 },     // 12 Mbps
+                    medium: { videoBitsPerSecond: 8000000 },    // 8 Mbps
+                    low: { videoBitsPerSecond: 4000000 },       // 4 Mbps
+                    lowest: { videoBitsPerSecond: 2000000 }     // 2 Mbps
+                }
+            };
+            
+            return options[format][quality];
+        }
+
+        // Update the quality select options HTML
+        qualitySelect.innerHTML = `
+            <option value="ultra">Ultra Quality</option>
+            <option value="high">High Quality</option>
+            <option value="medium">Medium Quality</option>
+            <option value="low">Low Quality</option>
+            <option value="lowest">Lowest Quality</option>
+        `;
+
+        // Add these event listeners after the formatSelect definition (around line 880)
+        qualitySelect.addEventListener('change', () => {
+            saveSettings();
+            updateQualityDescriptions();
+        });
+
+        formatSelect.addEventListener('change', () => {
+            saveSettings();
+            updateQualityDescriptions();
+        });
+
+        function updateQualityDescriptions() {
+            const format = formatSelect.value;
+            const qualityDescriptions = {
+                webm: {
+                    ultra: "Ultra Quality (12 Mbps)",
+                    high: "High Quality (8 Mbps)",
+                    medium: "Medium Quality (4 Mbps)",
+                    low: "Low Quality (2 Mbps)",
+                    lowest: "Lowest Quality (1 Mbps)"
+                },
+                mp4: {
+                    ultra: "Ultra Quality (20 Mbps)",
+                    high: "High Quality (12 Mbps)",
+                    medium: "Medium Quality (8 Mbps)",
+                    low: "Low Quality (4 Mbps)",
+                    lowest: "Lowest Quality (2 Mbps)"
+                }
+            };
+
+            const options = qualitySelect.options;
+            for (let i = 0; i < options.length; i++) {
+                const quality = options[i].value;
+                options[i].textContent = qualityDescriptions[format][quality];
+            }
+        }
+
+        // Call this initially to set the correct descriptions
+        updateQualityDescriptions();
 
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && e.target === document.body) {
@@ -1023,26 +1133,85 @@
             timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
+        async function checkScreenCapturePermissions() {
+            // Check if running on macOS
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            
+            if (isMac) {
+                try {
+                    // Check system permissions
+                    const permissionStatus = await navigator.permissions.query({ name: 'screen-capture' }).catch(() => ({ state: 'not-supported' }));
+                    
+                    if (permissionStatus.state === 'denied') {
+                        throw new Error(
+                            'Screen recording permission is denied. Please follow these steps:\n\n' +
+                            '1. Open System Preferences\n' +
+                            '2. Go to Security & Privacy > Privacy > Screen Recording\n' +
+                            '3. Enable permission for your browser\n' +
+                            '4. Restart your browser'
+                        );
+                    }
+                } catch (err) {
+                    if (err.message.includes('Screen recording permission')) {
+                        throw err;
+                    }
+                    // If permission query isn't supported, we'll try direct capture
+                }
+            }
+        }
+
         async function startRecording(displayMediaOptions) {
             try {
-                // Pause and hide any playing recording first
-                const playbackVideo = document.getElementById('playbackVideo');
-                if (playbackVideo) {
-                    playbackVideo.pause();
-                    playbackVideo.classList.remove('active');
-                    playbackVideo.style.display = "none";
-                    
-                    // Hide video controls
-                    const videoControls = document.querySelector('.video-controls');
-                    videoControls.classList.remove('active');
-                    
-                    // Update play button state
-                    updatePlayPauseButton(false);
+                loading.classList.add('visible');
+                
+                // Add Mac-specific checks and options
+                await checkScreenCapturePermissions();
+                
+                // Modify displayMediaOptions for better Mac compatibility
+                const macDisplayMediaOptions = {
+                    ...displayMediaOptions,
+                    video: {
+                        ...displayMediaOptions.video,
+                        frameRate: 30,
+                        displaySurface: displayMediaOptions.video.displaySurface || 'monitor',
+                        logicalSurface: true,
+                        cursor: 'always',
+                        suppressLocalAudioPlayback: true,
+                    },
+                    preferCurrentTab: false,
+                    selfBrowserSurface: 'include',
+                    systemAudio: 'include',
+                };
+
+                try {
+                    captureStream = await navigator.mediaDevices.getDisplayMedia(macDisplayMediaOptions);
+                } catch (err) {
+                    if (err.name === 'NotReadableError') {
+                        throw new Error(
+                            'Unable to access the screen. Please try these steps:\n\n' +
+                            '1. Check System Preferences > Security & Privacy > Privacy > Screen Recording\n' +
+                            '2. Ensure your browser has screen recording permission\n' +
+                            '3. Quit and restart your browser\n' +
+                            '4. If using multiple displays, try selecting a different display\n' +
+                            '5. Try closing other applications that might be using screen capture'
+                        );
+                    } else if (err.name === 'NotAllowedError') {
+                        throw new Error(
+                            'Permission denied. Please:\n\n' +
+                            '1. Allow screen recording permission in the browser prompt\n' +
+                            '2. Check System Preferences > Security & Privacy > Privacy > Screen Recording\n' +
+                            '3. Restart your browser after enabling permissions'
+                        );
+                    } else {
+                        throw new Error(`Screen capture error: ${err.message}\n\nPlease ensure screen recording permissions are enabled in System Preferences.`);
+                    }
                 }
 
-                loading.classList.add('visible');
-                captureStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
-                
+                // Check if we actually got a valid stream
+                if (!captureStream || !captureStream.active) {
+                    throw new Error('Failed to get a valid screen capture stream.');
+                }
+
                 video.srcObject = captureStream;
                 video.style.display = isVideoVisible ? "block" : "none";
                 video.classList.add('active');
@@ -1050,16 +1219,22 @@
                 const quality = qualitySelect.value;
                 const format = formatSelect.value;
                 const mimeType = format === 'mp4' ? 'video/mp4' : 'video/webm;codecs=vp9';
-                const bitrates = {
-                    high: 3000000,
-                    medium: 1500000,
-                    low: 800000
-                };
+                
+                // Check if the selected format is supported
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    throw new Error(`${format.toUpperCase()} format is not supported by your browser. Please try a different format.`);
+                }
 
-                mediaRecorder = new MediaRecorder(captureStream, {
-                    mimeType: mimeType,
-                    videoBitsPerSecond: bitrates[quality]
-                });
+                const recordingOptions = getRecordingOptions(format, quality);
+
+                try {
+                    mediaRecorder = new MediaRecorder(captureStream, {
+                        mimeType: mimeType,
+                        ...recordingOptions
+                    });
+                } catch (err) {
+                    throw new Error(`Failed to initialize recorder: ${err.message}`);
+                }
                 
                 recordedChunks = [];
                 fileSizeElement.textContent = 'File size: 0 MB';
@@ -1070,6 +1245,13 @@
                         const actualSize = recordedChunks.reduce((total, chunk) => total + chunk.size, 0) / (1024 * 1024);
                         fileSizeElement.textContent = `File size: ${actualSize.toFixed(1)} MB`;
                     }
+                };
+
+                // Add error handler for mediaRecorder
+                mediaRecorder.onerror = (event) => {
+                    console.error('MediaRecorder error:', event.error);
+                    stopRecording();
+                    alert(`Recording error: ${event.error.message || 'Unknown error occurred'}`);
                 };
 
                 mediaRecorder.onstop = () => {
@@ -1190,10 +1372,36 @@
                 recordingIndicator.classList.add('active');
                 screenSelect.classList.remove('visible');
                 loading.classList.remove('visible');
+
+                // Add stream stop handler
+                captureStream.getVideoTracks()[0].onended = () => {
+                    console.log('Screen sharing stopped by user');
+                    stopRecording();
+                };
+
             } catch (err) {
                 console.error("Error starting screen recording:", err);
-                alert("Failed to start recording: " + err.message);
                 loading.classList.remove('visible');
+                screenSelect.classList.remove('visible');
+                
+                // Show a user-friendly error message
+                alert(err.message || "Failed to start recording. Please try again.");
+                
+                // Reset UI state
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                startButton.classList.remove('recording');
+                
+                // Cleanup any partial setup
+                if (captureStream) {
+                    captureStream.getTracks().forEach(track => track.stop());
+                    captureStream = null;
+                }
+                if (video.srcObject) {
+                    video.srcObject = null;
+                }
+                video.style.display = "none";
+                video.classList.remove('active');
             }
         }
 
@@ -1295,6 +1503,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             initDB();
+            updateQualityDescriptions();
 
             // Add delete all button event listener after DOM is loaded
             document.addEventListener('click', (e) => {
@@ -1332,6 +1541,7 @@
             request.onsuccess = () => {
                 recordingHistory = request.result;
                 updateHistoryDisplay();
+                updateStorageInfo();
             };
         }
 
@@ -1465,6 +1675,7 @@
                 
                 transaction.oncomplete = () => {
                     loadRecordingHistory();
+                    updateStorageInfo();
                 };
             }
         }
@@ -1596,6 +1807,135 @@
             if (!historyList.classList.contains('collapsed')) {
                 historyList.style.height = historyList.scrollHeight + 'px';
             }
+        });
+
+        async function updateStorageInfo() {
+            const transaction = db.transaction(['recordings'], 'readonly');
+            const store = transaction.objectStore('recordings');
+            const request = store.getAll();
+
+            request.onsuccess = async () => {
+                const recordings = request.result;
+                let totalSize = 0;
+                
+                recordings.forEach(recording => {
+                    totalSize += recording.blob.size;
+                });
+
+                const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
+                const storageUsedElement = document.getElementById('storageUsed');
+                const storageFill = document.querySelector('.storage-fill');
+                
+                // Get maximum available quota
+                const quotaInBytes = await requestMaxStorageQuota();
+                const quotaInMB = quotaInBytes / (1024 * 1024);
+                
+                // Update to show used/total format with appropriate units
+                let usedDisplay, quotaDisplay;
+                if (totalMB > 1024) {
+                    usedDisplay = `${(totalMB / 1024).toFixed(1)} GB`;
+                } else {
+                    usedDisplay = `${totalMB} MB`;
+                }
+                
+                if (quotaInMB > 1024) {
+                    quotaDisplay = `${(quotaInMB / 1024).toFixed(1)} GB`;
+                } else {
+                    quotaDisplay = `${Math.round(quotaInMB)} MB`;
+                }
+                
+                storageUsedElement.textContent = `${usedDisplay} / ${quotaDisplay}`;
+                
+                // Calculate percentage used
+                const percentageUsed = Math.min((totalSize / quotaInBytes) * 100, 100);
+                storageFill.style.width = `${percentageUsed}%`;
+                
+                // Change color based on usage
+                if (percentageUsed > 90) {
+                    storageFill.style.backgroundColor = '#dc3545';
+                } else if (percentageUsed > 70) {
+                    storageFill.style.backgroundColor = '#ffc107';
+                } else {
+                    storageFill.style.backgroundColor = 'var(--accent-color)';
+                }
+            };
+        }
+
+        const initDB = () => {
+            requestMaxStorageQuota().then(() => {
+                const request = indexedDB.open('ScreenRecorderDB', 1);
+                
+                request.onerror = (event) => {
+                    console.error('IndexedDB error:', event.target.error);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('recordings')) {
+                        db.createObjectStore('recordings', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    loadRecordingHistory();
+                };
+            });
+        };
+
+        function checkBrowserCompatibility() {
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const browser = {
+                chrome: !!window.chrome && navigator.vendor === "Google Inc.",
+                firefox: typeof InstallTrigger !== 'undefined',
+                safari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+            };
+
+            if (isMac) {
+                if (browser.safari) {
+                    alert('For best compatibility on macOS, we recommend using Chrome or Firefox. Safari may have limited screen recording capabilities.');
+                }
+                
+                // Add version check for Chrome
+                if (browser.chrome) {
+                    const chromeVersion = parseInt(navigator.userAgent.match(/Chrome\/([0-9]+)/)?.[1] || '0');
+                    if (chromeVersion < 72) {
+                        alert('Please update Chrome to version 72 or higher for better screen recording support.');
+                    }
+                }
+            }
+        }
+
+        // Call this when the page loads
+        document.addEventListener('DOMContentLoaded', checkBrowserCompatibility);
+
+        document.getElementById('troubleshootBtn').addEventListener('click', () => {
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const guide = isMac ? 
+                'MacOS Screen Recording Troubleshooting:\n\n' +
+                '1. Check Screen Recording Permission:\n' +
+                '   • Open System Preferences\n' +
+                '   • Go to Security & Privacy > Privacy > Screen Recording\n' +
+                '   • Ensure your browser is checked\n\n' +
+                '2. Browser Settings:\n' +
+                '   • Quit and restart your browser\n' +
+                '   • Try using Chrome or Firefox (recommended)\n' +
+                '   • Clear browser cache and cookies\n\n' +
+                '3. System Settings:\n' +
+                '   • Check if other apps are using screen recording\n' +
+                '   • Try disconnecting external displays\n' +
+                '   • Restart your computer\n\n' +
+                '4. Still having issues?\n' +
+                '   • Try a different browser\n' +
+                '   • Disable screen recording for all apps and re-enable\n' +
+                '   • Check for system updates' :
+                'General Troubleshooting:\n\n' +
+                '1. Browser Permissions\n' +
+                '2. Restart Browser\n' +
+                '3. Try Different Browser\n' +
+                '4. Check System Settings';
+
+            alert(guide);
         });
     </script>
 </body>
