@@ -38,7 +38,8 @@
             display: none;
         }
 
-        video.active {
+        video.active,
+        #playbackVideo.active {
             display: block;
         }
 
@@ -297,12 +298,6 @@
             display: block;
         }
 
-        .recording-history {
-            margin-top: 20px;
-            width: 100%;
-            max-width: 800px;
-        }
-
         .history-list {
             display: flex;
             flex-direction: column;
@@ -361,7 +356,6 @@
             font-weight: bold;
             transition: all 0.2s ease;
             position: relative;
-            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -434,6 +428,21 @@
 
         .history-item-actions .delete-btn:hover {
             background-color: rgba(220, 53, 69, 0.1);
+        }
+
+        .history-header h2::before {
+            content: '▼';
+            font-size: 0.8em;
+            transition: transform 0.3s ease;
+        }
+
+        .history-header.collapsed h2::before {
+            transform: rotate(-90deg);
+        }
+
+        .history-header.collapsed + .delete-all-btn {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .recording-history {
@@ -533,8 +542,11 @@
             flex-direction: column;
             align-items: center;
             overflow-y: auto;
+            overflow-x: hidden; /* Add this to prevent horizontal scroll */
             max-height: 100%;
             padding-right: 10px;
+            width: 100%; /* Add this to ensure proper width */
+            box-sizing: border-box; /* Add this to include padding in width calculation */
         }
 
         .playback-column {
@@ -576,6 +588,8 @@
         @media (max-width: 1200px) {
             .container {
                 flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 100px);
             }
             
             .recording-column,
@@ -606,14 +620,6 @@
                 overflow-y: auto;
                 max-height: calc(60vh - 100px);
                 min-height: 200px;
-            }
-        }
-
-        /* Add this to ensure proper spacing in mobile view */
-        @media (max-width: 1200px) {
-            .container {
-                height: auto;
-                min-height: calc(100vh - 100px);
             }
         }
 
@@ -657,23 +663,27 @@
         }
 
         .recording-column::-webkit-scrollbar,
-        .playback-column::-webkit-scrollbar {
+        .playback-column::-webkit-scrollbar,
+        .recording-history::-webkit-scrollbar {
             width: 8px;
         }
 
         .recording-column::-webkit-scrollbar-track,
-        .playback-column::-webkit-scrollbar-track {
+        .playback-column::-webkit-scrollbar-track,
+        .recording-history::-webkit-scrollbar-track {
             background: var(--bg-color);
         }
 
         .recording-column::-webkit-scrollbar-thumb,
-        .playback-column::-webkit-scrollbar-thumb {
+        .playback-column::-webkit-scrollbar-thumb,
+        .recording-history::-webkit-scrollbar-thumb {
             background: var(--border-color);
             border-radius: 4px;
         }
 
         .recording-column::-webkit-scrollbar-thumb:hover,
-        .playback-column::-webkit-scrollbar-thumb:hover {
+        .playback-column::-webkit-scrollbar-thumb:hover,
+        .recording-history::-webkit-scrollbar-thumb:hover {
             background: var(--button-hover);
         }
 
@@ -685,23 +695,6 @@
         .video-controls {
             order: -1;
             flex-shrink: 0;
-        }
-
-        .recording-history::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .recording-history::-webkit-scrollbar-track {
-            background: var(--bg-color);
-        }
-
-        .recording-history::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-
-        .recording-history::-webkit-scrollbar-thumb:hover {
-            background: var(--button-hover);
         }
 
         .save-dialog .filename-container {
@@ -742,22 +735,6 @@
             background-color: var(--bg-color);
             z-index: 100;
             gap: 15px;
-        }
-
-        .delete-all-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background-color: var(--button-bg);
-            color: #dc3545;
-            border: 1px solid #dc3545;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: none;
-            opacity: 1;
-            transition: opacity 0.3s ease;
         }
 
         .delete-all-btn.visible {
@@ -803,6 +780,7 @@
             font-size: 0.9em;
             color: var(--text-color);
             opacity: 0.8;
+            text-align: center;
         }
 
         .storage-bar {
@@ -817,6 +795,286 @@
             background: var(--accent-color);
             width: 0%;
             transition: width 0.3s ease;
+        }
+
+        button#toggleVideo {
+            transition: all 0.3s ease;
+        }
+
+        button#toggleVideo.showing {
+            background-color: #dc3545;
+        }
+
+        button#toggleVideo.showing:hover {
+            background-color: #c82333;
+        }
+
+        button#toggleVideo svg {
+            display: none;
+        }
+
+        button#toggleVideo svg.active {
+            display: inline-block;
+        }
+
+        .video-container {
+            position: relative;
+            display: none;
+            order: -1;
+            flex-shrink: 0;
+        }
+
+        .video-container.active {
+            display: block;
+        }
+
+        .close-video-btn {
+            position: absolute;
+            top: 10px;
+            right: 0px;
+            background: rgba(0, 0, 0, 0.6);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 10;
+            padding: 0;
+        }
+
+        .close-video-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1);
+        }
+
+        .close-video-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Add/modify these styles for better mobile responsiveness */
+
+        /* Base container adjustments */
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            gap: 20px;
+            padding: 10px;
+            box-sizing: border-box;
+            height: calc(100vh - 80px);
+        }
+
+        /* Adjust controls for mobile */
+        .controls {
+            margin: 8px 0;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 600px;
+            gap: 8px;
+            padding: 0 10px;
+        }
+
+
+        .history-item-details {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .history-item-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        /* Add responsive media queries */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 80px);
+                padding: 10px;
+            }
+            
+            .recording-column,
+            .playback-column {
+                width: 100%;
+                padding-right: 0;
+            }
+
+            .playback-column {
+                height: auto;
+                max-height: none;
+                display: grid;
+                grid-template-rows: auto auto 1fr;
+                gap: 15px;
+                display: flex;
+        align-items: center;
+            }
+
+            #playbackVideo {
+                width: 100%;
+                max-height: 40vh;
+                order: -1;
+            }
+
+            .video-controls {
+                width: 100%;
+                order: -1;
+                padding: 8px;
+            }
+
+            .recording-history {
+                overflow-y: auto;
+                max-height: 50vh;
+                min-height: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            body > h1 {
+                font-size: 24px;
+                margin: 15px 10px;
+            }
+
+            #timer {
+                font-size: 20px;
+            }
+
+            .history-item-details {
+                font-size: 0.75em;
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            
+
+            .storage-info {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .delete-all-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            #seekBar {
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            .save-dialog {
+                width: 95%;
+                padding: 15px;
+            }
+    
+        }
+
+        @media (max-width: 520px) {
+            .screen-select .controls {
+                flex-direction: column;
+            }
+
+            .screen-option {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .history-item-actions button {
+                padding: 6px;
+            }
+
+            .history-item-actions button svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            .controls button {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            #timer {
+                font-size: 18px;
+            }
+            .history-item-info {
+
+                font-size: .75em;
+            }
+            .history-top {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+                      /* Adjust history items for mobile */
+        .history-item {
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .history-item-actions {
+            margin-top: -50px;
+
+
+        }
+        }
+
+        /* Add touch-friendly adjustments */
+        @media (hover: none) {
+            button:hover:not(:disabled) {
+                transform: none;
+            }
+
+            .history-item-actions button:hover {
+                transform: none;
+            }
+
+            .screen-option:hover {
+                transform: none;
+            }
+
+            /* Increase touch targets */
+            .history-item-actions button {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .controls button {
+                min-height: 44px;
+            }
+        }
+
+        /* Add/modify media query for mobile */
+        @media (max-width: 768px) {
+            .recording-column {
+                padding-right: 0; /* Remove right padding on mobile */
+                width: 100%;
+                max-width: 100vw; /* Ensure it doesn't exceed viewport width */
+            }
+
+            .controls {
+                width: 100%;
+                padding: 0 5px; /* Reduce padding on mobile */
+                box-sizing: border-box;
+            }
+
+            /* Ensure all direct children of recording-column don't overflow */
+            .recording-column > * {
+                max-width: 100%;
+                box-sizing: border-box;
+            }
         }
     </style>
 </head>
@@ -849,12 +1107,6 @@
                         <small>Record current browser tab</small>
                     </button>
                 </div>
-            </div>
-
-            <div class="troubleshooting-info" style="margin-top: 15px; text-align: center;">
-                <button id="troubleshootBtn" class="troubleshoot-btn" style="background: var(--button-bg); border: 1px solid var(--border-color);">
-                    Troubleshooting Guide
-                </button>
             </div>
 
             <div class="controls">
@@ -897,7 +1149,14 @@
         </div>
 
         <div class="playback-column">
-            <video id="playbackVideo" controlsList="nodownload"></video>
+            <div id="videoContainer" class="video-container">
+                <video id="playbackVideo" controlsList="nodownload"></video>
+                <button class="close-video-btn" title="Close Video">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="white"/>
+                    </svg>
+                </button>
+            </div>
             <div class="video-controls">
                 <button id="playPauseBtn">
                     <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -986,10 +1245,10 @@
                     return estimate.quota;
                 }
                 // Fallback to a high value if Storage API is not available
-                return 1024 * 1024 * 1024 * 10; // 10GB default
+                return 1024 * 1024 * 1024 // 10GB default
             } catch (error) {
                 console.warn('Error requesting storage quota:', error);
-                return 1024 * 1024 * 1024 * 10; // 10GB fallback
+                return 1024 * 1024 * 1024; // 10GB fallback
             }
         }
 
@@ -1007,28 +1266,42 @@
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
                 
-                // Apply saved settings
+                // Check if Safari and force MP4
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                if (isSafari) {
+                    formatSelect.value = 'mp4';
+                    formatSelect.disabled = true;
+                } else {
+                    formatSelect.value = settings.format || 'webm';
+                    formatSelect.disabled = false;
+                }
+                
                 qualitySelect.value = settings.quality || 'high';
-                formatSelect.value = settings.format || 'webm';
                 isVideoVisible = settings.isVideoVisible ?? true;
                 
-                // Update UI to match loaded settings
+                // Update toggle button state
                 const showIcon = toggleVideoButton.querySelector('.show-icon');
                 const hideIcon = toggleVideoButton.querySelector('.hide-icon');
                 
                 if (isVideoVisible) {
                     showIcon.classList.remove('active');
                     hideIcon.classList.add('active');
+                    toggleVideoButton.classList.remove('showing');
                     toggleVideoButton.title = 'Hide Recording';
                 } else {
                     showIcon.classList.add('active');
                     hideIcon.classList.remove('active');
+                    toggleVideoButton.classList.add('showing');
                     toggleVideoButton.title = 'Show Recording';
                 }
-                
-                if (video.srcObject) {
-                    video.style.display = isVideoVisible ? "block" : "none";
-                }
+            } else {
+                // Set default state
+                const showIcon = toggleVideoButton.querySelector('.show-icon');
+                const hideIcon = toggleVideoButton.querySelector('.hide-icon');
+                hideIcon.classList.add('active');
+                showIcon.classList.remove('active');
+                toggleVideoButton.classList.remove('showing');
+                toggleVideoButton.title = 'Hide Recording';
             }
         }
 
@@ -1163,6 +1436,14 @@
         async function startRecording(displayMediaOptions) {
             try {
                 loading.classList.add('visible');
+                
+                // Hide playback video if it's visible
+                const playbackVideo = document.getElementById('playbackVideo');
+                const videoContainer = document.getElementById('videoContainer');
+                playbackVideo.src = ''; // Clear the source
+                playbackVideo.style.display = "none"; // Hide the video element
+                videoContainer.classList.remove('active');
+                document.querySelector('.video-controls').classList.remove('active');
                 
                 // Add Mac-specific checks and options
                 await checkScreenCapturePermissions();
@@ -1490,10 +1771,12 @@
             if (isVideoVisible) {
                 showIcon.classList.remove('active');
                 hideIcon.classList.add('active');
+                toggleVideoButton.classList.remove('showing');
                 toggleVideoButton.title = 'Hide Recording';
             } else {
                 showIcon.classList.add('active');
                 hideIcon.classList.remove('active');
+                toggleVideoButton.classList.add('showing');
                 toggleVideoButton.title = 'Show Recording';
             }
             
@@ -1521,6 +1804,7 @@
                         request.onsuccess = () => {
                             recordingHistory = [];
                             updateHistoryDisplay();
+                            updateStorageInfo();
                         };
 
                         request.onerror = () => {
@@ -1629,12 +1913,12 @@
             request.onsuccess = () => {
                 const recording = request.result;
                 if (recording) {
-                    console.log('Loaded recording duration:', recording.duration);
                     const url = URL.createObjectURL(recording.blob);
                     const playbackVideo = document.getElementById('playbackVideo');
+                    const videoContainer = document.getElementById('videoContainer');
                     playbackVideo.src = url;
                     playbackVideo.style.display = "block";
-                    playbackVideo.classList.add('active');
+                    videoContainer.classList.add('active');
                     
                     // Store the duration as a data attribute
                     playbackVideo.dataset.storedDuration = recording.duration;
@@ -1831,20 +2115,14 @@
                 const quotaInMB = quotaInBytes / (1024 * 1024);
                 
                 // Update to show used/total format with appropriate units
-                let usedDisplay, quotaDisplay;
+                let usedDisplay;
                 if (totalMB > 1024) {
                     usedDisplay = `${(totalMB / 1024).toFixed(1)} GB`;
                 } else {
                     usedDisplay = `${totalMB} MB`;
                 }
                 
-                if (quotaInMB > 1024) {
-                    quotaDisplay = `${(quotaInMB / 1024).toFixed(1)} GB`;
-                } else {
-                    quotaDisplay = `${Math.round(quotaInMB)} MB`;
-                }
-                
-                storageUsedElement.textContent = `${usedDisplay} / ${quotaDisplay}`;
+                storageUsedElement.textContent = usedDisplay;
                 
                 // Calculate percentage used
                 const percentageUsed = Math.min((totalSize / quotaInBytes) * 100, 100);
@@ -1891,17 +2169,20 @@
                 safari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
             };
 
-            if (isMac) {
-                if (browser.safari) {
-                    alert('For best compatibility on macOS, we recommend using Chrome or Firefox. Safari may have limited screen recording capabilities.');
-                }
+            if (browser.safari) {
+                // Force MP4 format for Safari
+                formatSelect.value = 'mp4';
+                formatSelect.disabled = true;
                 
-                // Add version check for Chrome
-                if (browser.chrome) {
-                    const chromeVersion = parseInt(navigator.userAgent.match(/Chrome\/([0-9]+)/)?.[1] || '0');
-                    if (chromeVersion < 72) {
-                        alert('Please update Chrome to version 72 or higher for better screen recording support.');
-                    }
+                if (isMac) {
+                    alert('Safari has limited screen recording capabilities. For best results, we recommend using Chrome or Firefox. Note: Only MP4 format is supported in Safari.');
+                }
+            }
+            
+            if (isMac && browser.chrome) {
+                const chromeVersion = parseInt(navigator.userAgent.match(/Chrome\/([0-9]+)/)?.[1] || '0');
+                if (chromeVersion < 72) {
+                    alert('Please update Chrome to version 72 or higher for better screen recording support.');
                 }
             }
         }
@@ -1909,33 +2190,13 @@
         // Call this when the page loads
         document.addEventListener('DOMContentLoaded', checkBrowserCompatibility);
 
-        document.getElementById('troubleshootBtn').addEventListener('click', () => {
-            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-            const guide = isMac ? 
-                'MacOS Screen Recording Troubleshooting:\n\n' +
-                '1. Check Screen Recording Permission:\n' +
-                '   • Open System Preferences\n' +
-                '   • Go to Security & Privacy > Privacy > Screen Recording\n' +
-                '   • Ensure your browser is checked\n\n' +
-                '2. Browser Settings:\n' +
-                '   • Quit and restart your browser\n' +
-                '   • Try using Chrome or Firefox (recommended)\n' +
-                '   • Clear browser cache and cookies\n\n' +
-                '3. System Settings:\n' +
-                '   • Check if other apps are using screen recording\n' +
-                '   • Try disconnecting external displays\n' +
-                '   • Restart your computer\n\n' +
-                '4. Still having issues?\n' +
-                '   • Try a different browser\n' +
-                '   • Disable screen recording for all apps and re-enable\n' +
-                '   • Check for system updates' :
-                'General Troubleshooting:\n\n' +
-                '1. Browser Permissions\n' +
-                '2. Restart Browser\n' +
-                '3. Try Different Browser\n' +
-                '4. Check System Settings';
-
-            alert(guide);
+        document.querySelector('.close-video-btn').addEventListener('click', () => {
+            const playbackVideo = document.getElementById('playbackVideo');
+            const videoContainer = document.getElementById('videoContainer');
+            playbackVideo.src = ''; // Clear the source
+            playbackVideo.style.display = "none";
+            videoContainer.classList.remove('active');
+            document.querySelector('.video-controls').classList.remove('active');
         });
     </script>
 </body>
