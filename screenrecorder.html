@@ -1073,6 +1073,9 @@
                     const format = formatSelect.value;
                     const blob = new Blob(recordedChunks, { type: format === 'mp4' ? 'video/mp4' : 'video/webm' });
                     
+                    // Store the final duration before showing save dialog
+                    const finalDuration = recordingDuration;
+                    
                     const saveDialog = document.querySelector('.save-dialog');
                     const overlay = document.querySelector('.overlay');
                     const filenameInput = document.getElementById('filename');
@@ -1096,7 +1099,7 @@
                     const time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS
                     
                     // Calculate duration in seconds
-                    const durationSecs = Math.round((Date.now() - startTime) / 1000);
+                    const durationSecs = Math.round(finalDuration); // Use finalDuration instead of calculating again
                     const durationStr = durationSecs < 60 ? `${durationSecs}s` : `${Math.round(durationSecs/60)}m`;
                     
                     // Construct filename: Recording_Type_YYYYMMDD_HHMMSS_Duration
@@ -1129,7 +1132,7 @@
                                 size: actualSize.toFixed(1),
                                 type: format === 'mp4' ? 'video/mp4' : 'video/webm',
                                 recordingType: recordingType,
-                                duration: recordingDuration
+                                duration: finalDuration // Use finalDuration here instead of recordingDuration
                             });
 
                             transaction.oncomplete = () => {
