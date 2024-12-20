@@ -1076,6 +1076,21 @@
                 box-sizing: border-box;
             }
         }
+
+        /* Add this CSS for the download button */
+        .download-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background-color: #218838;
+        }
     </style>
     <!-- Add this in the <head> section, right after your existing scripts -->
     <script>(function (name, definition) {
@@ -2134,12 +2149,7 @@
                             transaction.oncomplete = () => {
                                 loadRecordingHistory();
                                 
-                                // Download the file
-                                const a = document.createElement("a");
-                                a.href = URL.createObjectURL(blob);
-                                a.download = filename;
-                                a.click();
-                                URL.revokeObjectURL(a.href);
+                                // Remove the automatic download code
                             };
                         }
                         
@@ -2240,7 +2250,6 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
                     <circle cx="12" cy="12" r="8" fill="currentColor"/>
                 </svg>
-                Start Recording
             `;
             recordingIndicator.classList.remove('active');
             
@@ -2420,6 +2429,13 @@
                     <div class="history-item-actions">
                         <button class="play-btn" onclick="playRecording(${recording.id})" title="Play Recording">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </button>
+                        <button class="download-btn" onclick="downloadRecording(${recording.id})" title="Download Recording">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
                         </button>
                         <button class="delete-btn" onclick="deleteRecording(${recording.id})" title="Delete Recording">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -2728,6 +2744,24 @@
             videoContainer.classList.remove('active');
             document.querySelector('.video-controls').classList.remove('active');
         });
+
+        // Add this function after the playRecording function
+        function downloadRecording(id) {
+            const transaction = db.transaction(['recordings'], 'readonly');
+            const store = transaction.objectStore('recordings');
+            const request = store.get(id);
+
+            request.onsuccess = () => {
+                const recording = request.result;
+                if (recording) {
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(recording.blob);
+                    a.download = recording.filename;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                }
+            };
+        }
     </script>
 </body>
 </html>
