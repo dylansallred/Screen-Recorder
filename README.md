@@ -2,6 +2,9 @@
 
 A powerful and user-friendly web-based screen recording application that enables users to capture their screen content with flexibility. Choose between recording your entire monitor, specific application windows, or browser tabs with audio support. Built with vanilla JavaScript and HTML5, this tool runs entirely in your browser - no server uploads required. The entire application is contained in a single HTML file, making it fast, secure, and privacy-friendly since all processing happens locally on your device.
 
+![Screen Recorder Demo](images/screenrecorder.gif)
+
+
 🔴 [Try Live Demo](https://dylansallred.github.io/Screen-Recorder/screenrecorder.html)
 
 ## Features
