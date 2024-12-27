@@ -5,7 +5,7 @@ A powerful and user-friendly web-based screen recording application that enables
 ![Screen Recorder Demo](images/screenrecorder.gif)
 
 
-🔴 [Try Live Demo](https://dylansallred.github.io/Screen-Recorder/screenrecorder.html)
+🔴 [Try Live Demo](https://dylansallred.github.io/Screen-Recorder/Screen-Recorder.html)
 
 ## Features
 
