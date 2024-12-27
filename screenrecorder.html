@@ -235,6 +235,22 @@
             color: var(--text-color);
             border: 1px solid var(--border-color);
             font-size: 14px;
+            /* Add these new styles */
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        /* Add this new style for focus state */
+        select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Add hover state */
+        select:hover {
+            background: var(--button-hover);
+            transform: translateY(-1px);
         }
 
         .file-size {
@@ -462,6 +478,12 @@
             user-select: none;
             z-index: 9999;
             position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .history-header:hover {
+           transform: scale(1.05);
+           transition: all 0.2s ease;
         }
 
         .history-header h2 {
@@ -747,13 +769,6 @@
             display: flex;
         }
 
-        .history-header {
-            cursor: pointer;
-            user-select: none;
-            z-index: 9999;
-            position: relative;
-        }
-
         .history-header h2 {
             display: flex;
             align-items: center;
@@ -807,11 +822,11 @@
         }
 
         button#toggleVideo.showing {
-            background-color: #dc3545;
+            background-color: #5046e5;
         }
 
         button#toggleVideo.showing:hover {
-            background-color: #c82333;
+            background-color: #4d42ff;
         }
 
         button#toggleVideo svg {
@@ -942,6 +957,11 @@
                 overflow-y: auto;
                 max-height: 50vh;
                 min-height: 200px;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE/Edge */
+            }
+            .recording-history::-webkit-scrollbar {
+                display: none; /* Chrome/Safari/Opera */
             }
         }
 
@@ -1710,12 +1730,10 @@
                 </button>
                 <button id="toggleVideo" title="Hide Recording">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hide-icon">
-                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                        <path d="M12 20H16M12 20H8M12 20V16M12 16H5C4.44772 16 4 15.5523 4 15V6C4 5.44771 4.44772 5 5 5H19C19.5523 5 20 5.44772 20 6V15C20 15.5523 19.5523 16 19 16H12Z"/>
                     </svg>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="show-icon">
-                        <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path>
-                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                        <path d="M12 20H16M12 20H8M12 20V16H5C4.44772 16 4 15.5523 4 15V9M3 3L21 21M10 5H19C19.5523 5 20 5.44772 20 6V15"/>
                     </svg>
                 </button>
             </div>
@@ -2027,19 +2045,16 @@
         async function startRecording(displayMediaOptions) {
             try {
                 loading.classList.add('visible');
-                
-                // Hide the screen select options when starting recording
                 screenSelect.classList.remove('visible');
                 
                 // Hide playback video if it's visible
                 const playbackVideo = document.getElementById('playbackVideo');
                 const videoContainer = document.getElementById('videoContainer');
-                playbackVideo.src = ''; // Clear the source
-                playbackVideo.style.display = "none"; // Hide the video element
+                playbackVideo.src = '';
+                playbackVideo.style.display = "none";
                 videoContainer.classList.remove('active');
                 document.querySelector('.video-controls').classList.remove('active');
                 
-                // Add Mac-specific checks and options
                 await checkScreenCapturePermissions();
                 
                 // Modify displayMediaOptions for better Mac compatibility
@@ -2048,10 +2063,7 @@
                     video: {
                         ...displayMediaOptions.video,
                         frameRate: 30,
-                        displaySurface: displayMediaOptions.video.displaySurface || 'monitor',
-                        logicalSurface: true,
                         cursor: 'always',
-                        suppressLocalAudioPlayback: true,
                     },
                     preferCurrentTab: false,
                     selfBrowserSurface: 'include',
@@ -2060,6 +2072,16 @@
 
                 try {
                     captureStream = await navigator.mediaDevices.getDisplayMedia(macDisplayMediaOptions);
+                    
+                    // Get the actual display surface type from the stream
+                    const videoTrack = captureStream.getVideoTracks()[0];
+                    const settings = videoTrack.getSettings();
+                    
+                    // Update the displayMediaOptions with the actual display surface
+                    displayMediaOptions.video.displaySurface = settings.displaySurface;
+                    
+                    console.log('Actual display surface:', settings.displaySurface);
+                    
                 } catch (err) {
                     if (err.name === 'NotReadableError') {
                         throw new Error(
@@ -2839,7 +2861,7 @@
             });
         });
 
-        // Add this function after the playRecording function
+        // Replace the existing downloadRecording function with this updated version
         function downloadRecording(id) {
             const transaction = db.transaction(['recordings'], 'readonly');
             const store = transaction.objectStore('recordings');
@@ -2848,14 +2870,22 @@
             request.onsuccess = () => {
                 const recording = request.result;
                 if (recording) {
+                    const url = URL.createObjectURL(recording.blob);
                     const a = document.createElement("a");
-                    a.href = URL.createObjectURL(recording.blob);
+                    a.href = url;
                     a.download = recording.filename;
+                    document.body.appendChild(a); // Append to body
                     a.click();
-                    URL.revokeObjectURL(a.href);
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
                 }
             };
         }
     </script>
 </body>
 </html>
+
