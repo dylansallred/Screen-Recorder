@@ -4,29 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Screen Recording and Saving</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #1a1a1a;
             --text-color: #ffffff;
             --button-bg: #2c2c2c;
             --button-hover: #3d3d3d;
-            --accent-color: #007bff;
+            --accent-color: #4f46e5;  /* Updated to a modern indigo */
             --border-color: #333333;
+            --error-color: #ef4444;
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+            --card-bg: #242424;
+            --shadow-color: rgba(0, 0, 0, 0.2);
             
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
             min-height: 100vh;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
+            line-height: 1.5;
         }
 
         video {
@@ -44,22 +46,21 @@
         }
 
         button {
-            padding: 8px 16px;
-            font-size: 14px;
-            margin: 5px;
-            cursor: pointer;
-            border: none;
-            border-radius: 6px;
-            background-color: var(--button-bg);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--button-bg);
+            border: 1px solid var(--border-color);
             color: var(--text-color);
-            transition: all 0.3s ease;
-            font-weight: 500;
-            letter-spacing: 0.3px;
         }
 
         button:hover:not(:disabled) {
-            background-color: var(--button-hover);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            background: var(--button-hover);
+            box-shadow: 0 4px 12px var(--shadow-color);
         }
 
         button:disabled {
@@ -85,19 +86,18 @@
         }
 
         #timer {
-            font-size: 24px;
-            margin: 5px;
-            font-family: monospace;
+            font-size: 2rem;
+            font-weight: 700;
             color: var(--accent-color);
+            text-align: center;
         }
 
         .controls {
-            margin: 10px 0;
             display: flex;
-            justify-content: center;
+            gap: 0.75rem;
             flex-wrap: wrap;
-            width: 100%;
-            max-width: 600px;
+            justify-content: center;
+            margin: 1.5rem 0;
         }
 
         .recording-indicator {
@@ -116,10 +116,11 @@
         }
 
         .screen-select {
-            margin: 10px 0;
-            display: none;
-            width: 100%;
-            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            display: none; /* Hide by default */
         }
 
         .screen-select.visible {
@@ -127,14 +128,13 @@
         }
 
         .screen-option {
-            background-color: var(--button-bg);
-            padding: 15px;
-            margin: 5px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            background: var(--button-bg);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin: 0.5rem;
+            transition: all 0.2s ease;
             flex: 1;
-            min-width: 200px;
+            min-width: 150px;
             text-align: center;
             border: 1px solid var(--border-color);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -199,11 +199,15 @@
             background: var(--button-bg);
             padding: 10px;
             border-radius: 8px;
+            width: 100%;  /* Add this */
+            box-sizing: border-box;  /* Add this */
+            margin: 0 auto;  /* Add this */
         }
 
         .video-controls.active {
             display: flex;
-            width: 100%;
+            width: 100%;  /* Add this */
+            align-self: stretch;  /* Add this */
         }
 
         #seekBar {
@@ -305,15 +309,12 @@
         }
 
         .history-item {
-            background-color: var(--button-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
+            background: var(--button-bg);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            flex-direction: column;
+            gap: 1rem;
         }
 
         .history-item-info {
@@ -323,12 +324,13 @@
         }
 
         .history-item-filename {
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 1.125rem;
         }
 
         .history-item-details {
-            font-size: 0.8em;
-            color: #888;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.875rem;
             display: flex;
             gap: 15px;
         }
@@ -347,7 +349,8 @@
 
         .history-item-actions {
             display: flex;
-            gap: 10px;
+            gap: 0.75rem;
+            justify-content: flex-end;
         }
 
         #playPauseBtn {
@@ -525,14 +528,14 @@
         }
 
         .container {
-            display: flex;
-            width: 100%;
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
-            gap: 20px;
-            padding: 20px;
-            box-sizing: border-box;
-            height: calc(100vh - 100px);
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            height: auto;
+            min-height: calc(100vh - 80px);
         }
 
         .recording-column {
@@ -545,6 +548,7 @@
             overflow-x: hidden; /* Add this to prevent horizontal scroll */
             max-height: 100%;
             padding-right: 10px;
+            padding-left: 10px;
             width: 100%; /* Add this to ensure proper width */
             box-sizing: border-box; /* Add this to include padding in width calculation */
         }
@@ -558,6 +562,8 @@
             padding-right: 10px;
             gap: 20px;
             overflow-y: hidden;
+            align-items: center;  /* Add this */
+            width: 100%;  /* Add this */
         }
 
         .recording-history {
@@ -688,7 +694,7 @@
         }
 
         body > h1 {
-            margin: 20px;
+            margin: 20px 0px 10px 0px;
             text-align: center;
         }
 
@@ -729,7 +735,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            padding: 0 15px;
+            padding: 15px;
             position: sticky;
             top: 0;
             background-color: var(--bg-color);
@@ -784,9 +790,8 @@
         }
 
         .storage-bar {
-            height: 4px;
-            background: var(--button-bg);
-            border-radius: 2px;
+            height: 0.375rem;
+            border-radius: 0.25rem;
             overflow: hidden;
         }
 
@@ -794,7 +799,7 @@
             height: 100%;
             background: var(--accent-color);
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.3s ease, background-color 0.3s ease;
         }
 
         button#toggleVideo {
@@ -822,6 +827,8 @@
             display: none;
             order: -1;
             flex-shrink: 0;
+            width: 100%;  /* Add this */
+            max-width: min(90%, 800px);  /* Add this */
         }
 
         .video-container.active {
@@ -830,9 +837,9 @@
 
         .close-video-btn {
             position: absolute;
-            top: 10px;
+            top: 40px;
             right: 0px;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgb(164 164 164 / 48%);
             border: none;
             border-radius: 50%;
             width: 32px;
@@ -877,7 +884,7 @@
             justify-content: center;
             flex-wrap: wrap;
             width: 100%;
-            max-width: 600px;
+            max-width: 400px;
             gap: 8px;
             padding: 0 10px;
         }
@@ -891,6 +898,7 @@
         .history-item-actions {
             width: 100%;
             justify-content: flex-end;
+            margin-top: -50px;
         }
 
         /* Add responsive media queries */
@@ -905,7 +913,7 @@
             .recording-column,
             .playback-column {
                 width: 100%;
-                padding-right: 0;
+                padding-left: 10px;
             }
 
             .playback-column {
@@ -1021,7 +1029,6 @@
         .history-item {
             flex-direction: column;
             gap: 10px;
-            padding: 12px;
         }
 
         .history-item-actions {
@@ -1029,7 +1036,17 @@
 
 
         }
+
+        .history-item-filename {
+            font-size: .8em;
         }
+        .history-item-details {
+
+            font-size: .5em;
+        }
+        }
+
+        
 
         /* Add touch-friendly adjustments */
         @media (hover: none) {
@@ -1090,6 +1107,49 @@
 
         .download-btn:hover {
             background-color: #218838;
+        }
+
+        /* Add these styles in the <style> section */
+
+        .video-title {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 600;
+            font-size: 1.1em;
+            display: none;
+        }
+
+        .video-title.active {
+            display: block;
+        }
+
+        .history-item.playing {
+            border: 2px solid var(--accent-color);
+            background: rgba(79, 70, 229, 0.1);
+        }
+
+        .history-item.playing .play-btn {
+            background-color: var(--accent-color) !important;
+            color: white !important;
+        }
+
+        /* Add this to the existing <style> section */
+        @keyframes recordingBorder {
+            0% {
+                box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.8);
+            }
+            50% {
+                box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.4);
+            }
+            100% {
+                box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.8);
+            }
+        }
+
+        video#screenVideo.recording {
+            border: 2px solid #dc3545;
+            animation: recordingBorder 2s infinite;
+            border-radius: 8px;
         }
     </style>
     <!-- Add this in the <head> section, right after your existing scripts -->
@@ -1680,6 +1740,7 @@
 
         <div class="playback-column">
             <div id="videoContainer" class="video-container">
+                <div class="video-title"></div>
                 <video id="playbackVideo" controlsList="nodownload"></video>
                 <button class="close-video-btn" title="Close Video">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -1967,6 +2028,9 @@
             try {
                 loading.classList.add('visible');
                 
+                // Hide the screen select options when starting recording
+                screenSelect.classList.remove('visible');
+                
                 // Hide playback video if it's visible
                 const playbackVideo = document.getElementById('playbackVideo');
                 const videoContainer = document.getElementById('videoContainer');
@@ -2026,6 +2090,7 @@
                 video.srcObject = captureStream;
                 video.style.display = isVideoVisible ? "block" : "none";
                 video.classList.add('active');
+                video.classList.add('recording');
                 
                 const quality = qualitySelect.value;
                 const format = formatSelect.value;
@@ -2238,7 +2303,7 @@
                 captureStream = null;
                 video.srcObject = null;
                 video.style.display = "none";
-                video.classList.remove('active');
+                video.classList.remove('active', 'recording');
             }
             
             clearInterval(timerInterval);
@@ -2263,6 +2328,7 @@
             video.classList.remove('active');
             document.querySelector('.video-controls').classList.remove('active');
             
+            // Show the screen select options
             screenSelect.classList.add('visible');
         });
 
@@ -2389,6 +2455,7 @@
             recordingHistory.forEach((recording) => {
                 const historyItem = document.createElement('div');
                 historyItem.className = 'history-item';
+                historyItem.setAttribute('data-id', recording.id); // Add this line
                 
                 const date = new Date(recording.timestamp);
                 const formattedDate = date.toLocaleString();
@@ -2452,6 +2519,11 @@
         }
 
         function playRecording(id) {
+            // First remove 'playing' class from all history items
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.classList.remove('playing');
+            });
+
             const transaction = db.transaction(['recordings'], 'readonly');
             const store = transaction.objectStore('recordings');
             const request = store.get(id);
@@ -2462,6 +2534,20 @@
                     const url = URL.createObjectURL(recording.blob);
                     const playbackVideo = document.getElementById('playbackVideo');
                     const videoContainer = document.getElementById('videoContainer');
+                    const videoTitle = document.querySelector('.video-title');
+                    
+                    // Set and show the video title
+                    videoTitle.textContent = recording.filename;
+                    videoTitle.classList.add('active');
+                    
+                    // Find and highlight the current playing item in the list
+                    const historyItem = document.querySelector(`.history-item[data-id="${id}"]`);
+                    if (historyItem) {
+                        historyItem.classList.add('playing');
+                        // Scroll the playing item into view if needed
+                        historyItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+
                     playbackVideo.src = url;
                     playbackVideo.style.display = "block";
                     videoContainer.classList.add('active');
@@ -2739,10 +2825,18 @@
         document.querySelector('.close-video-btn').addEventListener('click', () => {
             const playbackVideo = document.getElementById('playbackVideo');
             const videoContainer = document.getElementById('videoContainer');
+            const videoTitle = document.querySelector('.video-title');
+            
             playbackVideo.src = ''; // Clear the source
             playbackVideo.style.display = "none";
             videoContainer.classList.remove('active');
+            videoTitle.classList.remove('active');
             document.querySelector('.video-controls').classList.remove('active');
+            
+            // Remove playing state from all history items
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.classList.remove('playing');
+            });
         });
 
         // Add this function after the playRecording function
